@@ -1,0 +1,10 @@
+{
+  "empresa1": {
+    "clave": "clave_cifrada_empresa1",
+    "fecha": "2025-05-30"
+  },
+  "empresa2": {
+    "clave": "clave_cifrada_empresa2",
+    "fecha": "2025-06-01"
+  }
+}

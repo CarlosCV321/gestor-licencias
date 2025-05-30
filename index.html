@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Gestión de Licencias</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+        input[type="text"], input[type="date"] {
+            padding: 5px; width: 95%;
+        }
+        button { padding: 5px 10px; margin: 5px; }
+        .oculto { display: none; }
+    </style>
+</head>
+<body>
+    <h2>Gestión de Licencias</h2>
+
+    <button onclick="mostrarFormularioCreacion()">➕ Crear Empresa</button>
+
+    <div id="formularioCreacion" class="oculto">
+        <h3 id="tituloForm">Nueva Empresa</h3>
+        <input id="inputNombre" placeholder="Nombre de empresa" />
+        <input id="inputClave" placeholder="Clave" />
+        <input id="inputFecha" type="date" />
+        <button id="btnGuardar">Guardar</button>
+        <button id="btnCancelar">Cancelar</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Clave</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tablaLicencias"></tbody>
+    </table>
+
+<script>
+    const API_BASE = "/netlify/functions";
+
+    let licencias = {};
+    let editandoEmpresa = null;
+
+    async function cargarLicencias() {
+        try {
+            const res = await fetch(`${API_BASE}/get_licencias`);
+            licencias = await res.json();
+            mostrarLicencias();
+        } catch {
+            alert("Error al cargar licencias");
+        }
+    }
+
+    function mostrarLicencias() {
+        const tabla = document.getElementById('tablaLicencias');
+        tabla.innerHTML = "";
+
+        Object.entries(licencias).forEach(([empresa, { clave, fecha }]) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${empresa}</td>
+                <td>${clave}</td>
+                <td>${fecha}</td>
+                <td>
+                    <button onclick="editarLicencia('${empresa}')">✏️ Editar</button>
+                </td>
+            `;
+            tabla.appendChild(tr);
+        });
+    }
+
+    function mostrarFormularioCreacion() {
+        editandoEmpresa = null;
+        document.getElementById('tituloForm').textContent = "Crear Nueva Empresa";
+        document.getElementById('inputNombre').value = "";
+        document.getElementById('inputClave').value = "";
+        document.getElementById('inputFecha').value = new Date().toISOString().slice(0,10);
+        document.getElementById('inputNombre').disabled = false;
+        document.getElementById('formularioCreacion').classList.remove('oculto');
+    }
+
+    function editarLicencia(empresa) {
+        editandoEmpresa = empresa;
+        document.getElementById('tituloForm').textContent = `Editar ${empresa}`;
+        document.getElementById('inputNombre').value = empresa;
+        document.getElementById('inputClave').value = licencias[empresa].clave;
+        document.getElementById('inputFecha').value = licencias[empresa].fecha;
+        document.getElementById('inputNombre').disabled = true;  // no puede cambiar nombre al editar
+        document.getElementById('formularioCreacion').classList.remove('oculto');
+    }
+
+    document.getElementById('btnGuardar').onclick = async () => {
+        const empresa = document.getElementById('inputNombre').value.trim();
+        const clave = document.getElementById('inputClave').value.trim();
+        const fecha = document.getElementById('inputFecha').value;
+        if (!empresa || !clave || !fecha) {
+            alert("Completa todos los campos");
+            return;
+        }
+        const password = prompt("Ingresa la contraseña (Siadco21)");
+        if(password !== "Siadco21") {
+            alert("Contraseña incorrecta");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/save_licencia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ empresa, clave, fecha, password }),
+            });
+
+            if (!res.ok) throw new Error("Error guardando licencia");
+            alert("Licencia guardada con éxito");
+            document.getElementById('formularioCreacion').classList.add('oculto');
+            cargarLicencias();
+        } catch {
+            alert("Error al guardar licencia");
+        }
+    };
+
+    document.getElementById('btnCancelar').onclick = () => {
+        document.getElementById('formularioCreacion').classList.add('oculto');
+    };
+
+    window.onload = cargarLicencias;
+</script>
+</body>
+</html>
